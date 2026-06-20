@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  AGENT
+  BUILDER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PropertyType {
+  VILLA
+  APARTMENT
+  PENTHOUSE
+  TOWNHOUSE
+  PLOT
+  COMMERCIAL
+  STUDIO
+  DUPLEX
+  FARMHOUSE
+}
+
+enum ListingType {
+  SALE
+  RENT
+}
+
+enum PropertyStatus {
+  ACTIVE
+  SOLD
+  UNDER_OFFER
+  NEW_LAUNCH
+}
+
+enum FurnishingType {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+}
+
+enum Direction {
+  NORTH
+  SOUTH
+  EAST
+  WEST
+  NORTH_EAST
+  NORTH_WEST
+  SOUTH_EAST
+  SOUTH_WEST
+}
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  phone             String?
+  passwordHash      String?
+  firstName         String
+  lastName          String
+  avatar            String?
+  role              UserRole   @default(BUYER)
+  isEmailVerified   Boolean    @default(false)
+  isPhoneVerified   Boolean    @default(false)
+  preferredCurrency String     @default("INR")
+  preferredLanguage String     @default("en")
+  savedProperties   Property[] @relation("UserSavedProperties")
+  agent             Agent?
+  inquiries         Inquiry[]
+  reviews           Review[]
+  alerts            SearchAlert[]
+  siteVisits        SiteVisit[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Agent {
+  id              String        @id @default(cuid())
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String        @unique
+  licenseNumber   String?
+  reraId          String?
+  bio             String?       @db.Text
+  experience      Int
+  specializations String[]
+  languages       String[]
+  rating          Decimal?      @db.Decimal(3, 2)
+  reviewCount     Int           @default(0)
+  dealsClosed     Int           @default(0)
+  totalValue      Decimal?      @db.Decimal(15, 2)
+  isVerified      Boolean       @default(false)
+  isFeatured      Boolean       @default(false)
+  properties      Property[]
+  reviews         AgentReview[]
+  city            String
+  areas           String[]
+  createdAt       DateTime      @default(now())
+}
+
+model Property {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  title            String
+  description      String            @db.Text
+  propertyType     PropertyType
+  listingType      ListingType
+  status           PropertyStatus    @default(ACTIVE)
+  price            Decimal           @db.Decimal(15, 2)
+  pricePerSqft     Decimal?          @db.Decimal(10, 2)
+  bedrooms         Int?
+  bathrooms        Int?
+  areaSqft         Decimal           @db.Decimal(10, 2)
+  floor            Int?
+  totalFloors      Int?
+  yearBuilt        Int?
+  furnishing       FurnishingType?
+  facing           Direction?
+  reraNumber       String?
+  isReraRegistered Boolean           @default(false)
+  isVerified       Boolean           @default(false)
+  isFeatured       Boolean           @default(false)
+  isExclusive      Boolean           @default(false)
+  viewCount        Int               @default(0)
+  inquiryCount     Int               @default(0)
+  images           PropertyImage[]
+  amenities        PropertyAmenity[]
+  location         Location?
+  agent            Agent             @relation(fields: [agentId], references: [id])
+  agentId          String
+  priceHistory     PriceHistory[]
+  reviews          Review[]
+  savedBy          User[]            @relation("UserSavedProperties")
+  inquiries        Inquiry[]
+  siteVisits       SiteVisit[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  url        String
+  alt        String?
+  order      Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+}
+
+model PropertyAmenity {
+  id         String   @id @default(cuid())
+  name       String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  address    String?
+  locality   String
+  city       String
+  state      String
+  country    String
+  pincode    String?
+  lat        Decimal? @db.Decimal(10, 7)
+  lng        Decimal? @db.Decimal(10, 7)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String   @unique
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  price      Decimal  @db.Decimal(15, 2)
+  date       DateTime
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+}
+
+model Inquiry {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  message    String?  @db.Text
+  status     String   @default("PENDING")
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  createdAt  DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?  @db.Text
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  createdAt  DateTime @default(now())
+}
+
+model AgentReview {
+  id      String   @id @default(cuid())
+  rating  Int
+  comment String?  @db.Text
+  agent   Agent    @relation(fields: [agentId], references: [id])
+  agentId String
+  createdAt DateTime @default(now())
+}
+
+model SearchAlert {
+  id        String   @id @default(cuid())
+  name      String
+  filters   Json
+  frequency String   @default("DAILY")
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model SiteVisit {
+  id         String   @id @default(cuid())
+  date       DateTime
+  status     String   @default("SCHEDULED")
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  createdAt  DateTime @default(now())
+}
