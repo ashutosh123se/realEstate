@@ -9,7 +9,7 @@ import { collections } from "@/lib/data/mock-data";
 
 export function CollectionsSection() {
   return (
-    <Section>
+    <Section className="!pb-0">
       <Container>
         <SectionHeading
           title="Handpicked Collections"
@@ -18,7 +18,7 @@ export function CollectionsSection() {
           className="mb-10 md:mb-12"
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 auto-rows-fr">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 auto-rows-fr pb-12 md:pb-16">
           {collections.map((col, i) => (
             <Reveal key={col.id} delay={i * 0.08} className="h-full">
               <CollectionCard collection={col} className="h-full" />
